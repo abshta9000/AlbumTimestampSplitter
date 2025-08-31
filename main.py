@@ -6,10 +6,12 @@ from datetime import timedelta
 import json
 import os
 import eyed3
+import pathvalidate
 
 FILE_PREFIX = r"F:\Code\splitter\EA2 CD-0"
 OUTPUT_DIR = Path("clips")
 TRACKLIST_PATH = 'tracklist.json'
+ALBUM_NAME = "Electronic Architechture 2"
 
 def get_video_duration(filename):
     result = subprocess.run(
@@ -35,41 +37,61 @@ timestamps = []
 for song in tracklist:
     minutes,seconds = song["duration"].split(":")    
     disc,track = song["trackPos"].split("-")
-    timestamps.append([timedelta(minutes=int(minutes),seconds=int(seconds)),disc,track,song["artist"],song["title"],song["comments"]])
+    timestamps.append({
+        "duration": timedelta(minutes=int(minutes),seconds=int(seconds)),
+        "disc":     disc,
+        "track":    track,
+        "artist":   song["artist"],
+        "title":    song["title"],
+        "comments": song["comments"]
+    })
 
 OUTPUT_DIR.mkdir(exist_ok=True)
+while (True):
+    confirmation = input("Everything in " + str(OUTPUT_DIR) + " is getting deleted. Do you want to continue? [y/N]")
+    if confirmation.upper() in ["Y", "N", ""]:
+        input = confirmation
+        break
+if input.upper() in ["Y", ""]:
+    for file_name in os.listdir(OUTPUT_DIR):
+        file_path = os.path.join(OUTPUT_DIR, file_name)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+elif input.upper() in ["N", ""]:
+    Exception("Operation cancelled by user. No files were deleted.")
 
 current_start = 0  
-current_file = 1
+current_disc = 1
 
 num="b"
 
 for i, timestamp in enumerate(timestamps):
+    print("⏭️ Now Starting: " + timestamp["title"])
 
-    if current_file != timestamp[1]:
-        current_file = timestamp[1]
+    if current_disc != timestamp["disc"]:
+        current_disc = timestamp["disc"]
         current_start = 0
 
-    duration = timestamp[0].seconds
-    output_name = str(num) + ".mp3"
-    num+="b"
+    duration = timestamp["duration"].seconds
+    output_name = pathvalidate.sanitize_filename(f"[{random.randint(10000,99999)}] " + timestamp["title"] + ".mp3")
     output_path = OUTPUT_DIR / output_name
 
     command = [
         "ffmpeg",
         "-ss", str(current_start),
-        "-i", FILE_PREFIX + str(current_file) + ".mp3",
-        "-map", "0",              
-        "-map_metadata", "0",     
-        "-map_metadata", "0:s:0",
-        "-c:a", "libmp3lame",     
+        "-i", FILE_PREFIX + str(current_disc) + ".mp3",
+        "-map", "0:a",           
+        "-map", "0:v?",          
+        "-map_metadata", "0",    
+        "-c:a", "libmp3lame",    
         "-q:a", "2",
-        "-id3v2_version", "3",     
-        "-vn"
+        "-c:v", "copy",          
+        "-id3v2_version", "3",
+        "-write_id3v2", "1"
     ]
 
     try:
-        if timestamps[i+1][1] == timestamps[i][1]:
+        if timestamps[i+1]["disc"] == timestamps[i]["disc"]:
             command.extend(["-t", str(duration)])
     except IndexError:
         ""
@@ -79,13 +101,15 @@ for i, timestamp in enumerate(timestamps):
     print("Running:", " ".join(command))
     subprocess.run(command, check=True)
     audiofile = eyed3.load(output_path)
-    audiofile.tag.disc_num = timestamp[1]
-    audiofile.tag.track_num  = timestamp[2]
-    audiofile.tag.artist = timestamp[3]
-    audiofile.tag.title = timestamp[4]
-    audiofile.tag.comments.set(timestamp[5])
+    audiofile.tag.disc_num = timestamp["disc"]
+    audiofile.tag.track_num  = timestamp["track"]
+    audiofile.tag.artist = timestamp["artist"]
+    audiofile.tag.title = timestamp["title"]
+    audiofile.tag.comments.set(timestamp["comments"]) 
+    audiofile.tag.album = ALBUM_NAME
     audiofile.tag.save()
 
     current_start += int(duration)
+    print("☑️ Successfully finished: " + timestamp["title"])
 
 print("✅ All clips exported!")
