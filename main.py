@@ -5,47 +5,13 @@ from pathlib import Path
 from datetime import timedelta
 import json
 import os
-from mutagen.id3 import ID3, TIT2, TPE1, TALB, COMM, TPE2, TCOM, TCON, TDRC, TRCK, TPOS
+from mutagen.easyid3 import EasyID3
 import pathvalidate
-import re
 
 FILE_PREFIX = r"F:\Code\splitter\EA2 CD-0"
 OUTPUT_DIR = Path("clips")
 TRACKLIST_PATH = 'tracklist.json'
 ALBUM_NAME = "Electronic Architechture 2"
-
-def writeTag(filename, tagName, newValue):
-        newValue = str(newValue)
-        #title
-        if (tagName == 'title'):
-            tags["TIT2"] = TIT2(encoding=3, text=u''+newValue+'')
-        #mutagen Album Name
-        elif (tagName == 'album'):
-            tags["TALB"] = TALB(encoding=3, text= u''+newValue+'')
-        #mutagen Band
-        elif (tagName == 'band'):
-            tags["TPE2"] = TPE2(encoding=3, text= u''+newValue+'')
-        #mutagen comment
-        elif (tagName == 'comment'):
-            tags["COMM"] = COMM(encoding=3, lang=u'eng', desc='desc', text=u''+newValue+'')
-        #mutagen Artist
-        elif (tagName == 'artist'):
-            tags["TPE1"] = TPE1(encoding=3, text=u''+newValue+'')
-        #mutagen Compose   
-        elif (tagName == 'composer'):           
-            tags["TCOM"] = TCOM(encoding=3, text=u''+newValue+'')
-        #mutagen Genre
-        elif (tagName == 'genre'):
-            tags["TCON"] = TCON(encoding=3, text=u''+newValue+'')
-        #mutagen Genre date
-        elif (tagName == 'genre_date'):
-            tags["TDRC"] = TDRC(encoding=3, text=u''+newValue+'')
-        #track_number    
-        elif (tagName == 'track_number'):
-            tags["TRCK"] = TRCK(encoding=3, text=u''+newValue+'')
-        #disc_number
-        elif (tagName == 'disc_number'):
-            tags["TPOS"] = TPOS(encoding=3, text=u''+newValue+'')
 
 def get_video_duration(filename):
     result = subprocess.run(
@@ -82,7 +48,7 @@ for song in tracklist:
 
 OUTPUT_DIR.mkdir(exist_ok=True)
 while (True):
-    confirmation = input("Everything in " + str(OUTPUT_DIR) + " is getting deleted. Do you want to continue? [y/N]")
+    confirmation = input("Everything in " + str(OUTPUT_DIR) + " is getting deleted. Do you want to continue? [y/N] ")
     if confirmation.upper() in ["Y", "N", ""]:
         input = confirmation
         break
@@ -134,14 +100,16 @@ for i, timestamp in enumerate(timestamps):
 
     print("Running:", " ".join(command))
     subprocess.run(command, check=True)
-    tags = ID3(output_path)
-    writeTag(output_path,"disc_num",timestamp["disc"])
-    writeTag(output_path,"track_number",timestamp["track"])
-    writeTag(output_path,"artist",timestamp["artist"])
-    writeTag(output_path,"title",timestamp["title"])
-    writeTag(output_path,"comment",timestamp["comments"])
-    writeTag(output_path,"album",ALBUM_NAME)
-    tags.save(output_path)
+
+    EasyID3.RegisterTextKey('comment', 'COMM')
+    tags = EasyID3(output_path)
+    tags["title"] = timestamp["title"]
+    tags["artist"] = timestamp["artist"]
+    tags["album"] = ALBUM_NAME
+    tags["tracknumber"] = str(timestamp["track"])
+    tags["discnumber"] = str(timestamp["disc"])
+    tags["comment"] = timestamp["comments"]
+    tags.save(v2_version=3)
 
 
     current_start += int(duration)
