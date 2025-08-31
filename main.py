@@ -7,6 +7,10 @@ import json
 import os
 import eyed3
 
+FILE_PREFIX = r"F:\Code\splitter\EA2 CD-0"
+OUTPUT_DIR = Path("clips")
+TRACKLIST_PATH = 'tracklist.json'
+
 def get_video_duration(filename):
     result = subprocess.run(
         [
@@ -21,12 +25,10 @@ def get_video_duration(filename):
     info = json.loads(result.stdout)
     return float(info["format"]["duration"])
 
-directory = os.getcwd()
-file_type = ".mp3"  
 
-file_paths = [os.path.join(directory, file) for file in os.listdir(directory) if file.endswith(file_type)]
+file_paths = [os.path.join(os.getcwd(), file) for file in os.listdir(os.getcwd()) if file.endswith(".mp3")]
 
-with open('tracklist.json', 'r') as file:
+with open(TRACKLIST_PATH, 'r') as file:
     tracklist = json.load(file)  
 
 timestamps = []
@@ -35,10 +37,7 @@ for song in tracklist:
     disc,track = song["trackPos"].split("-")
     timestamps.append([timedelta(minutes=int(minutes),seconds=int(seconds)),disc,track,song["artist"],song["title"],song["comments"]])
 
-input_file = r"F:\Code\splitter\EA2 CD-0"
-
-output_dir = Path("clips")
-output_dir.mkdir(exist_ok=True)
+OUTPUT_DIR.mkdir(exist_ok=True)
 
 current_start = 0  
 current_file = 1
@@ -54,12 +53,12 @@ for i, timestamp in enumerate(timestamps):
     duration = timestamp[0].seconds
     output_name = str(num) + ".mp3"
     num+="b"
-    output_path = output_dir / output_name
+    output_path = OUTPUT_DIR / output_name
 
     command = [
         "ffmpeg",
         "-ss", str(current_start),
-        "-i", input_file + str(current_file) + ".mp3",
+        "-i", FILE_PREFIX + str(current_file) + ".mp3",
         "-map", "0",              
         "-map_metadata", "0",     
         "-map_metadata", "0:s:0",
