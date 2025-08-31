@@ -5,13 +5,47 @@ from pathlib import Path
 from datetime import timedelta
 import json
 import os
-import eyed3
+from mutagen.id3 import ID3, TIT2, TPE1, TALB, COMM, TPE2, TCOM, TCON, TDRC, TRCK, TPOS
 import pathvalidate
+import re
 
 FILE_PREFIX = r"F:\Code\splitter\EA2 CD-0"
 OUTPUT_DIR = Path("clips")
 TRACKLIST_PATH = 'tracklist.json'
 ALBUM_NAME = "Electronic Architechture 2"
+
+def writeTag(filename, tagName, newValue):
+        newValue = str(newValue)
+        #title
+        if (tagName == 'title'):
+            tags["TIT2"] = TIT2(encoding=3, text=u''+newValue+'')
+        #mutagen Album Name
+        elif (tagName == 'album'):
+            tags["TALB"] = TALB(encoding=3, text= u''+newValue+'')
+        #mutagen Band
+        elif (tagName == 'band'):
+            tags["TPE2"] = TPE2(encoding=3, text= u''+newValue+'')
+        #mutagen comment
+        elif (tagName == 'comment'):
+            tags["COMM"] = COMM(encoding=3, lang=u'eng', desc='desc', text=u''+newValue+'')
+        #mutagen Artist
+        elif (tagName == 'artist'):
+            tags["TPE1"] = TPE1(encoding=3, text=u''+newValue+'')
+        #mutagen Compose   
+        elif (tagName == 'composer'):           
+            tags["TCOM"] = TCOM(encoding=3, text=u''+newValue+'')
+        #mutagen Genre
+        elif (tagName == 'genre'):
+            tags["TCON"] = TCON(encoding=3, text=u''+newValue+'')
+        #mutagen Genre date
+        elif (tagName == 'genre_date'):
+            tags["TDRC"] = TDRC(encoding=3, text=u''+newValue+'')
+        #track_number    
+        elif (tagName == 'track_number'):
+            tags["TRCK"] = TRCK(encoding=3, text=u''+newValue+'')
+        #disc_number
+        elif (tagName == 'disc_number'):
+            tags["TPOS"] = TPOS(encoding=3, text=u''+newValue+'')
 
 def get_video_duration(filename):
     result = subprocess.run(
@@ -39,8 +73,8 @@ for song in tracklist:
     disc,track = song["trackPos"].split("-")
     timestamps.append({
         "duration": timedelta(minutes=int(minutes),seconds=int(seconds)),
-        "disc":     disc,
-        "track":    track,
+        "disc":     int(disc),
+        "track":    int(track),
         "artist":   song["artist"],
         "title":    song["title"],
         "comments": song["comments"]
@@ -100,14 +134,15 @@ for i, timestamp in enumerate(timestamps):
 
     print("Running:", " ".join(command))
     subprocess.run(command, check=True)
-    audiofile = eyed3.load(output_path)
-    audiofile.tag.disc_num = timestamp["disc"]
-    audiofile.tag.track_num  = timestamp["track"]
-    audiofile.tag.artist = timestamp["artist"]
-    audiofile.tag.title = timestamp["title"]
-    audiofile.tag.comments.set(timestamp["comments"]) 
-    audiofile.tag.album = ALBUM_NAME
-    audiofile.tag.save()
+    tags = ID3(output_path)
+    writeTag(output_path,"disc_num",timestamp["disc"])
+    writeTag(output_path,"track_number",timestamp["track"])
+    writeTag(output_path,"artist",timestamp["artist"])
+    writeTag(output_path,"title",timestamp["title"])
+    writeTag(output_path,"comment",timestamp["comments"])
+    writeTag(output_path,"album",ALBUM_NAME)
+    tags.save(output_path)
+
 
     current_start += int(duration)
     print("☑️ Successfully finished: " + timestamp["title"])
