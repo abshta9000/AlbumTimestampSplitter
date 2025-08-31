@@ -9,6 +9,8 @@
 // @grant        none
 // ==/UserScript==
 
+// TODO: remove dashes from comments causing encoding issues
+
 (function() {
     'use strict';
 
@@ -20,13 +22,16 @@
     for (const row of rows){
         let song = {}
 
-        const artist = row.querySelector(".artist_VsG56").innerText;
+        const td = row.querySelector('td.artist_VsG56');
+        const artist = removeDashes(td);
+
         const trackPos = findDeepestChild(row.querySelector(".trackPos_n8vad")).innerText;
         const duration = findDeepestChild(row.querySelector(".duration_GhhxK")).innerText;
 
         const fullTitle = row.querySelector("td.trackTitle_loyWF");
         const title = fullTitle.querySelector("span.trackTitle_loyWF").innerText;
         const comments = fullTitle.children[1].querySelector(".css-144m4pk").innerText;
+        console.log(comments);
 
         const cd = trackPos.split("-")[0];
         const songNum = trackPos.split("-")[1];
@@ -40,7 +45,7 @@
         tracklist.push(song);
     }
 
-    const blob = new Blob([JSON.stringify(tracklist)], { type: "text/plain" });
+    const blob = new Blob([JSON.stringify(tracklist)], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
@@ -53,6 +58,21 @@
 
 
 })();
+
+function removeDashes(td){
+    const container = td.querySelector('span') || td;
+
+    const clone = container.cloneNode(true);
+    clone.querySelectorAll('.dash_vWaes').forEach(n => n.remove());
+
+    const text = clone.textContent
+    .replace(/\u00A0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+    return text;
+}
+
 
 function findDeepestChild(root) {
   let maxDepth = -1;
