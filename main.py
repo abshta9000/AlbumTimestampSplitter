@@ -11,22 +11,7 @@ import pathvalidate
 FILE_PREFIX = r"F:\Code\splitter\EA2 CD-0"
 OUTPUT_DIR = Path("clips")
 TRACKLIST_PATH = 'tracklist.json'
-ALBUM_NAME = "Electronic Architechture 2"
-
-def get_video_duration(filename):
-    result = subprocess.run(
-        [
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "json", filename
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True
-    )
-    info = json.loads(result.stdout)
-    return float(info["format"]["duration"])
-
+ALBUM_NAME = "Electronic Architecture 2"
 
 file_paths = [os.path.join(os.getcwd(), file) for file in os.listdir(os.getcwd()) if file.endswith(".mp3")]
 
