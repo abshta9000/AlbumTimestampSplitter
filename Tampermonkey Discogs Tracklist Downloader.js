@@ -31,11 +31,7 @@
         const fullTitle = row.querySelector("td.trackTitle_loyWF");
         const title = fullTitle.querySelector("span.trackTitle_loyWF").innerText;
         const comments = fullTitle.children[1].querySelector(".css-144m4pk").innerText;
-        console.log(comments);
-
-        const cd = trackPos.split("-")[0];
-        const songNum = trackPos.split("-")[1];
-
+        
         song.title = title;
         song.artist = artist;
         song.trackPos = trackPos;
