@@ -1,5 +1,4 @@
 import random
-import csv
 import subprocess
 from pathlib import Path
 from datetime import timedelta
@@ -7,6 +6,7 @@ import json
 import os
 from mutagen.easyid3 import EasyID3
 import pathvalidate
+import sys
 
 FILE_PREFIX = r"F:\Code\splitter\EA2 CD-0"
 OUTPUT_DIR = Path("clips")
@@ -37,13 +37,15 @@ while (True):
     if confirmation.upper() in ["Y", "N", ""]:
         input = confirmation
         break
+
 if input.upper() in ["Y", ""]:
     for file_name in os.listdir(OUTPUT_DIR):
         file_path = os.path.join(OUTPUT_DIR, file_name)
         if os.path.isfile(file_path):
             os.remove(file_path)
 elif input.upper() in ["N", ""]:
-    Exception("Operation cancelled by user. No files were deleted.")
+    print("Operation cancelled by user. No files were deleted.")
+    sys.exit(1)
 
 current_start = 0  
 current_disc = 1
